@@ -1,0 +1,48 @@
+id: ticket_routing_v1
+name: "Маршрутизация тикетов к агентам"
+
+arms:
+  - id: agent_maria
+    name: "Мария С."
+    metadata: {capacity: 8, cost_per_hour: 150}
+  - id: agent_ivan
+    name: "Иван К."
+    metadata: {capacity: 8, cost_per_hour: 150}
+  - id: agent_alexey
+    name: "Алексей Д."
+    metadata: {capacity: 8, cost_per_hour: 180}
+  - id: agent_olga
+    name: "Ольга Р."
+    metadata: {capacity: 8, cost_per_hour: 150}
+  - id: agent_dmitry
+    name: "Дмитрий В."
+    metadata: {capacity: 8, cost_per_hour: 120}
+
+context:
+  mode: categorical
+  features:
+    - {name: ticket_category, type: categorical}
+    - {name: client_tier, type: categorical}
+
+reward:
+  type: binary
+  signals:
+    - {name: fcr,       weight:  1.0, timeout_hours: 72, default_on_timeout: 0.0}
+    - {name: reopen,    weight: -0.5, timeout_hours: 72, default_on_timeout: 0.0}
+    - {name: csat_high, weight:  0.3, timeout_hours: 96, default_on_timeout: 0.0}
+  aggregation: weighted_sum
+
+objective:
+  type: max_probability
+
+constraints:
+  - {type: min_traffic, value: 0.03}
+
+hyperparams:
+  model_type: auto
+  beta:
+    alpha_init: 1.0
+    beta_init: 1.0
+    min_exploration: 0.03
+    cold_start_pulls: 30
+  update_mode: realtime

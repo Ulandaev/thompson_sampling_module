@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Conda / Poetry
+.venv/
+poetry.toml        # локальная конфигурация poetry (можно коммитить)
+
+# Тесты и покрытие
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Mypy
+.mypy_cache/
+
+# Симуляция — сгенерированные результаты
+results/
+examples/*/results/
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
+
+# OS
+.DS_Store
