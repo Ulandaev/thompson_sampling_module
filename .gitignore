@@ -30,3 +30,6 @@ examples/*/results/
 
 # OS
 .DS_Store
+
+PROJECT_CONTEXT.md
+PHASE_1.md
