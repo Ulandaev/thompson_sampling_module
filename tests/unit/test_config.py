@@ -9,18 +9,8 @@ from pydantic import ValidationError
 
 from ts_module.config.loader import load_from_dict, load_from_yaml
 from ts_module.config.schema import (
-    ArmConfig,
-    ContextConfig,
-    ContextFeatureConfig,
-    ContextMode,
-    HyperparamsConfig,
     ModelType,
     ModuleConfig,
-    ObjectiveConfig,
-    ObjectiveType,
-    RewardConfig,
-    RewardType,
-    SignalConfig,
 )
 
 CONFIG_YAML = Path(__file__).parent.parent.parent / "examples" / "ticket_routing" / "config.yaml"
@@ -119,3 +109,41 @@ def test_missing_required_fields_raise_validation_error() -> None:
     """Missing 'arms' raises ValidationError."""
     with pytest.raises(ValidationError):
         load_from_dict({"id": "x", "name": "X", "reward": {"signals": [{"name": "fcr"}]}})
+
+
+def test_auto_model_type_features_binary_resolves_to_logistic() -> None:
+    """auto + binary + features → logistic (Phase 2)."""
+    d = _base_config_dict(
+        context={
+            "mode": "features",
+            "features": [
+                {"name": "x", "type": "categorical", "categories": ["a", "b"]},
+            ],
+        },
+        hyperparams={"model_type": "auto"},
+    )
+    config = load_from_dict(d)
+    assert config.hyperparams.model_type == ModelType.logistic
+
+
+def test_auto_model_type_features_continuous_resolves_to_linear() -> None:
+    """auto + continuous reward → linear (Phase 2)."""
+    d = _base_config_dict(
+        reward={"type": "continuous", "signals": [{"name": "revenue"}]},
+        context={"mode": "features", "features": [{"name": "x", "type": "continuous"}]},
+        hyperparams={"model_type": "auto"},
+    )
+    config = load_from_dict(d)
+    assert config.hyperparams.model_type == ModelType.linear
+
+
+def test_categorical_feature_without_categories_raises_in_features_mode() -> None:
+    """Categorical feature in features mode without categories list → ValidationError."""
+    d = _base_config_dict(
+        context={
+            "mode": "features",
+            "features": [{"name": "cat", "type": "categorical"}],  # no 'categories'
+        },
+    )
+    with pytest.raises(ValidationError, match="categories"):
+        load_from_dict(d)

@@ -55,6 +55,9 @@ class ContextFeatureConfig(BaseModel):
 
     name: str
     type: str  # "categorical" | "continuous"
+    categories: list[str] | None = None
+    # Required for categorical features in features mode (one-hot encoding).
+    # Not needed in categorical mode (context_key handles it).
 
 
 class ContextConfig(BaseModel):
@@ -108,12 +111,45 @@ class BetaHyperparams(BaseModel):
     cold_start_pulls: int = 30
 
 
+class LogisticHyperparams(BaseModel):
+    """Hyperparameters for Logistic TS model."""
+
+    prior_variance: float = 1.0
+    # σ²: A initialised as (1/prior_variance)*I. Larger = less informative prior = learns faster.
+    regularization: float = 0.01
+    # λ added to A diagonal for numerical stability.
+    feature_scaling: bool = True
+    # Standardise continuous features (recommended).
+
+
+class LinearHyperparams(BaseModel):
+    """Hyperparameters for Linear TS model."""
+
+    prior_variance: float = 1.0
+    regularization: float = 0.01
+    feature_scaling: bool = True
+    noise_variance: float = 1.0
+    # σ²_noise: update uses b += (r / noise_variance) * x.
+    # Smaller → faster learning. At 1.0 behaviour matches LogisticModel (no sigmoid).
+
+
 class HyperparamsConfig(BaseModel):
     """Hyperparameter configuration for the module."""
 
     model_type: ModelType = ModelType.auto
+    min_exploration: float | None = None
+    # None → resolved to beta.min_exploration for backward compatibility.
     beta: BetaHyperparams = BetaHyperparams()
+    logistic: LogisticHyperparams = LogisticHyperparams()
+    linear: LinearHyperparams = LinearHyperparams()
     update_mode: str = "realtime"
+
+    @model_validator(mode="after")
+    def resolve_min_exploration(self) -> HyperparamsConfig:
+        """Fall back to beta.min_exploration for configs that don't set the top-level field."""
+        if self.min_exploration is None:
+            self.min_exploration = self.beta.min_exploration
+        return self
 
 
 class ModuleConfig(BaseModel):
@@ -159,4 +195,17 @@ class ModuleConfig(BaseModel):
         """Raise if objective type is 'custom' but no formula is provided."""
         if self.objective.type == ObjectiveType.custom and self.objective.formula is None:
             raise ValueError("Objective type 'custom' requires a formula to be specified.")
+        return self
+
+    @model_validator(mode="after")
+    def validate_categorical_features_have_categories(self) -> ModuleConfig:
+        """In features mode, categorical features must declare their categories list."""
+        if self.context.mode != ContextMode.features:
+            return self
+        for feat in self.context.features:
+            if feat.type == "categorical" and feat.categories is None:
+                raise ValueError(
+                    f"Feature '{feat.name}' is categorical in features mode but has no "
+                    "'categories' list. Provide categories for one-hot encoding."
+                )
         return self

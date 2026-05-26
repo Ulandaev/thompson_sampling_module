@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from ts_module.config.schema import ArmConfig, ConstraintConfig
 from ts_module.core.constraints import ConstraintEngine
 

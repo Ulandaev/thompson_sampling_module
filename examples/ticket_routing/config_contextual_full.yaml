@@ -1,5 +1,5 @@
-id: ticket_routing_v1
-name: "Маршрутизация тикетов к агентам"
+id: ticket_routing_logistic_full
+name: "Маршрутизация тикетов — Logistic TS (categorical + time_of_day)"
 
 arms:
   - id: agent_maria
@@ -19,10 +19,16 @@ arms:
     metadata: {capacity: 8, cost_per_hour: 120}
 
 context:
-  mode: categorical
+  mode: features
   features:
-    - {name: ticket_category, type: categorical}
-    - {name: client_tier, type: categorical}
+    - name: ticket_category
+      type: categorical
+      categories: ["billing", "tech", "complaint", "onboard"]
+    - name: client_tier
+      type: categorical
+      categories: ["smb", "mid", "enterprise"]
+    - name: time_of_day
+      type: continuous
 
 reward:
   type: binary
@@ -39,10 +45,10 @@ constraints:
   - {type: min_traffic, value: 0.03}
 
 hyperparams:
-  model_type: auto
+  model_type: logistic
   min_exploration: 0.03
-  beta:
-    alpha_init: 1.0
-    beta_init: 1.0
-    cold_start_pulls: 30
+  logistic:
+    prior_variance: 2.0
+    regularization: 0.01
+    feature_scaling: false
   update_mode: realtime

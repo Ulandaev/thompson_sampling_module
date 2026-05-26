@@ -15,7 +15,10 @@ from ts_module.core.constraints import ConstraintEngine
 from ts_module.core.feedback import FeedbackAggregator
 from ts_module.core.models.base import BaseModel
 from ts_module.core.models.beta import BetaModel
+from ts_module.core.models.linear import LinearModel
+from ts_module.core.models.logistic import LogisticModel
 from ts_module.core.objective import ObjectiveFunction
+from ts_module.core.preprocessing import FeatureProcessor
 from ts_module.core.state.base import SessionData
 from ts_module.core.state.memory import InMemoryStateStore
 
@@ -81,9 +84,28 @@ class TSEngine:
                 context_config=config.context,
                 hyperparams=config.hyperparams.beta,
             )
+        if mtype == ModelType.logistic:
+            processor = FeatureProcessor(
+                context_config=config.context,
+                feature_scaling=config.hyperparams.logistic.feature_scaling,
+            )
+            return LogisticModel(
+                arms=config.arms,
+                feature_processor=processor,
+                hyperparams=config.hyperparams.logistic,
+            )
+        if mtype == ModelType.linear:
+            processor = FeatureProcessor(
+                context_config=config.context,
+                feature_scaling=config.hyperparams.linear.feature_scaling,
+            )
+            return LinearModel(
+                arms=config.arms,
+                feature_processor=processor,
+                hyperparams=config.hyperparams.linear,
+            )
         raise NotImplementedError(
-            f"Model type '{mtype}' is not implemented in Phase 1. "
-            "Only 'beta' is supported."
+            f"Model type '{mtype}' is not implemented. Supported: beta, logistic, linear."
         )
 
     # ── core interface ────────────────────────────────────────────────────
@@ -141,9 +163,8 @@ class TSEngine:
         }
 
         # 6. Apply exploration floor
-        arm_scores = self._constraint_engine.apply_exploration_floor(
-            arm_scores, self._config.hyperparams.beta.min_exploration
-        )
+        min_exp: float = self._config.hyperparams.min_exploration or 0.0
+        arm_scores = self._constraint_engine.apply_exploration_floor(arm_scores, min_exp)
 
         # 7. Select best arm
         recommended_arm = self._objective.select(arm_scores)

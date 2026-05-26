@@ -5,7 +5,13 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from ts_module.config.schema import ArmConfig, BetaHyperparams, ContextConfig, ContextFeatureConfig, ContextMode
+from ts_module.config.schema import (
+    ArmConfig,
+    BetaHyperparams,
+    ContextConfig,
+    ContextFeatureConfig,
+    ContextMode,
+)
 from ts_module.core.models.beta import BetaModel
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
